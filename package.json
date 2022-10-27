@@ -1,6 +1,6 @@
 {
   "name": "@hash-bang/license-exporter",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Export licenses used within a project to various formats",
   "main": "app.js",
   "bin": {
