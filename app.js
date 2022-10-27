@@ -15,8 +15,10 @@ program
 	.usage('[directory/file...]')
 	.option('-t, --template <path>', 'Select a template file to use, either locally or a builtin', 'simple')
 	.option('-o, --output <path>', 'Output to file (defaults to STDOUT)')
-	.option('--json', 'Output the JSON used in the template before compiling - useful for debugging')
+	.option('--json', 'Output the JSON used in the template before compiling to STDERR - useful for debugging')
 	.option('-v, --verbose', 'Be verbose')
+	.option('--no-direct', 'Disable looking for direct dependencies only')
+	.option('--no-ignore-readme', 'Skip license reading where the license file is the same as the README file')
 	.parse(process.argv);
 
 let args = {
@@ -56,21 +58,30 @@ Promise.resolve()
 	.then(()=> {
 		return Promise.all(args.files.map(path => {
 			if (args.verbose) console.warn('Reading', path);
-			return new Promise((resolve, reject) =>
-				licenseChecker.init({
-					start: path,
-				}, (err, packages) =>
-					err ? reject(err) : resolve({ // Export to object with path as key
-						path,
-						main: {}, // Will be populated by the main package data later
-						packages: Object.entries(packages)
-							.map(([name, data]) => ({
-								name,
-								...data,
-							})),
-					})
-				)
-			);
+			return Promise.resolve()
+				.then(()=> fs.promises.readFile(
+					path.endsWith('package.json')
+						? path
+						: fsPath.join(path, 'package.json')
+				))
+				.then(contents => JSON.parse(contents))
+				.then(packageSpec => new Promise((resolve, reject) =>
+					licenseChecker.init({
+						start: path,
+					}, (err, packages) =>
+						err ? reject(err) : resolve({ // Export to object with path as key
+							path,
+							main: {}, // Will be populated by the main package data later
+							mainSpec: packageSpec,
+							packages: Object.entries(packages)
+								.map(([name, data]) => ({
+									name,
+									.../(?<name>^.+)@(?<version>.+?)$/.exec(name).groups,
+									...data,
+								})),
+						})
+					)
+				));
 		}));
 	})
 	.then(licenses => [...licenses]) // Squash array-of-arrays from Promise.all into one collection

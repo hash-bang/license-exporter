@@ -2,7 +2,7 @@
 ===========================
 Export licenses used within a project to various formats.
 
-See this projects [LICENSES.md](./LICENSES.md) file for example `--format=detail` output.
+See this projects [LICENSES.md](./LICENSES.md) file for example `--template=detail` output.
 
 
 ```
