@@ -1,0 +1,41 @@
+{
+  "name": "@hash-bang/license-exporter",
+  "version": "1.0.0",
+  "description": "Export licenses used within a project to various formats",
+  "main": "app.js",
+  "bin": {
+    "license-exporter": "./app.js"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hash-bang/license-exporter.git"
+  },
+  "keywords": [
+    "license",
+    "licenses"
+  ],
+  "author": "Matt Carter <m@ttcarter.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hash-bang/license-exporter/issues"
+  },
+  "homepage": "https://github.com/hash-bang/license-exporter#readme",
+  "dependencies": {
+    "@momsfriendlydevco/es6": "^1.0.0",
+    "commander": "^9.4.1",
+    "handlebars": "^4.7.7",
+    "license-checker": "^25.0.1"
+  },
+  "eslintConfig": {
+    "extends": "eslint:recommended",
+    "env": {
+      "es2021": true,
+      "node": true
+    },
+    "parserOptions": {
+      "ecmaVersion": 13,
+      "sourceType": "module"
+    }
+  }
+}
