@@ -15,6 +15,7 @@ program
 	.usage('[directory/file...]')
 	.option('-t, --template <path>', 'Select a template file to use, either locally or a builtin', 'simple')
 	.option('-o, --output <path>', 'Output to file (defaults to STDOUT)')
+	.option('-a, --append', 'Indicate that an existing file should be appended to')
 	.option('--json', 'Output the JSON used in the template before compiling to STDERR - useful for debugging')
 	.option('-v, --verbose', 'Be verbose')
 	.option('--no-direct', 'Disable looking for direct dependencies only')
@@ -29,7 +30,9 @@ let args = {
 let template; // Eventual Handlebars template to compile against
 let outputStream = new SaneStream(
 	args.output
-		? fs.createWriteStream(args.output)
+		? fs.createWriteStream(args.output, {
+			flags: args.append ? 'a' : 'w',
+		})
 		: process.stdout
 );
 let stderr = new SaneStream(process.stderr);
