@@ -5,6 +5,8 @@ import licenseChecker from 'license-checker';
 import handlebars from 'handlebars'
 import {program} from 'commander';
 import fs from 'node:fs';
+import fsPath from 'node:path';
+import {SaneStream} from './lib/sane-stream.js';
 
 import {inspect} from 'util';
 
@@ -23,9 +25,12 @@ let args = {
 };
 
 let template; // Eventual Handlebars template to compile against
-let outputStream = args.output
-	? fs.createWriteStream(args.output)
-	: process.stdout;
+let outputStream = new SaneStream(
+	args.output
+		? fs.createWriteStream(args.output)
+		: process.stdout
+);
+let stderr = new SaneStream(process.stderr);
 
 // Setup handlebars logging via `{{log ...stuff}}` {{{
 handlebars.registerHelper('log', (...args) => {
@@ -75,27 +80,44 @@ Promise.resolve()
 			let mainPkgOffset = license.packages.findIndex(p => p.path == license.path);
 			license.main = license.packages.splice(mainPkgOffset, 1).at(0);
 
+			let directDependencies = new Set(Object.keys(license.mainSpec.dependencies));
+
 			return Promise.all( // Read all license content to `.licenseContents` as buffer
 				Object.values(license.packages)
-					.map(pkg => fs.promises.readFile(pkg.licenseFile)
-						.then(content => pkg.licenseContents = content)
+					.filter(pkg =>
+						!args.direct
+						|| directDependencies.has(pkg.name)
 					)
+					.map(pkg => {
+						if ( // Try to read licenseFile?
+							pkg.licenseFile // Has a license file
+							&& (
+								! args.ignoreReadme
+								|| fsPath.parse(pkg.licenseFile).name != 'README'
+							)
+						) {
+							return fs.promises.readFile(pkg.licenseFile)
+								.then(content => pkg.licenseContents = content)
+								.then(()=> pkg);
+						} else {
+							return pkg;
+						}
+					})
 			)
+				.then(packages => license.packages = packages)
 				.then(()=> license)
 		})
 	))
-	.then(licenses => {
+	.then(async (licenses) => {
 		let templateData = {
 			licenses,
 		};
 
-		if (args.json)
-			console.log('DATA', inspect(templateData, {depth: null, colors: true}))
-
-		return new Promise(resolve => // Promisify the .write() function
-			outputStream.write(template(templateData, resolve)),
-		)
-			.then(()=> outputStream.end()) // Flush when done
+		if (args.json) await stderr.write('DATA:' + inspect(templateData, {depth: null, colors: true}))
+		return templateData;
+	})
+	.then(templateData => {
+		return outputStream.write(template(templateData));
 	})
 	// Catch / End {{{
 	.then(()=> process.exit(0))
@@ -103,4 +125,8 @@ Promise.resolve()
 		console.warn('Error:', e.toString());
 		process.exit(1);
 	})
+	.finally(()=> Promise.all([ // Flush all streams
+		outputStream.close(),
+		stderr.close(),
+	]))
 	// }}}
